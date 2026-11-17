@@ -53,3 +53,10 @@ ref/**/dist/
 ref/**/*.log
 ref/**/test-results/
 
+
+# Local design references and working design documentation
+/ref/
+/PRODUCT.md
+/DESIGN.md
+/.impeccable/
+
