@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:contador_pessoal/src/app.dart';
@@ -12,7 +13,10 @@ Future<void> capture(WidgetTester tester, String name) async {
       .hideCurrentSnackBar();
   await tester.pumpAndSettle();
   debugPrint('QA_CAPTURE:$name');
-  await Future<void>.delayed(const Duration(seconds: 5));
+  for (var i = 0; i < 12; i++) {
+    await Future<void>.delayed(const Duration(milliseconds: 500));
+    await tester.pump();
+  }
 }
 
 void main() {
@@ -64,6 +68,7 @@ void main() {
     await tester.tap(find.byTooltip('Editar meta'));
     await tester.pumpAndSettle();
     await tester.tap(find.byType(TextFormField).first);
+    await SystemChannels.textInput.invokeMethod<void>('TextInput.show');
     await tester.pumpAndSettle();
     await capture(tester, 'native-android-editor-keyboard');
     await tester.tap(find.text('Cancelar'));

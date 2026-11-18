@@ -10,8 +10,8 @@ try {
             $captureName = $Matches[1]
             if ($captureName -eq 'native-android-large-font') {
                 & $adb shell settings put system font_scale 1.6
-                Start-Sleep -Seconds 1
             }
+            Start-Sleep -Seconds 2
             & $adb shell screencap -p /sdcard/metas-qa.png
             & $adb pull /sdcard/metas-qa.png "build/qa/$captureName.png"
             if ($captureName -eq 'native-android-large-font') {

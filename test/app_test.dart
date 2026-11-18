@@ -142,6 +142,15 @@ void main() {
         await tester.tap(find.byTooltip('Ativar tema claro'));
         await flush(tester);
         await capture(tester, '${platform.name}-home');
+        final dragStart = tester.getCenter(find.text('Treino'));
+        final dragEnd = tester.getCenter(find.text('Meditar'));
+        final gesture = await tester.startGesture(dragStart);
+        await tester.pump(const Duration(milliseconds: 650));
+        await gesture.moveTo(dragEnd);
+        await tester.pump(const Duration(milliseconds: 100));
+        await gesture.up();
+        await flush(tester);
+        expect(store.goals[2].name, 'Treino');
         tester.view.physicalSize = const Size(320, 640);
         await tester.pumpAndSettle();
         await capture(tester, '${platform.name}-compact');

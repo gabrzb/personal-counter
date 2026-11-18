@@ -428,12 +428,19 @@ class GoalCalendar extends StatelessWidget {
   final DateTime month;
   final ValueChanged<int> onMonth;
   final ValueChanged<DateTime> onDay;
+
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
     final label = MaterialLocalizations.of(context).formatMonthYear(month);
     final days = DateTime(month.year, month.month + 1, 0).day;
     final offset = month.weekday % 7;
+    final minimumTarget = isIOS(context) ? 44.0 : 48.0;
+    final markSize = (MediaQuery.textScalerOf(context).scale(14) * 1.6).clamp(
+      38.0,
+      double.infinity,
+    );
+    final cellSize = (markSize + 10).clamp(minimumTarget, double.infinity);
     return Column(
       children: [
         Row(
@@ -459,86 +466,100 @@ class GoalCalendar extends StatelessWidget {
             ),
           ],
         ),
-        Row(
-          children: [
-            for (final day in ['D', 'S', 'T', 'Q', 'Q', 'S', 'S'])
-              Expanded(
-                child: Center(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 8),
-                    child: Text(
-                      day,
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: colors.onSurfaceVariant,
+        LayoutBuilder(
+          builder: (context, constraints) => SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: SizedBox(
+              width: constraints.maxWidth.clamp(cellSize * 7, double.infinity),
+              child: Column(
+                children: [
+                  Row(
+                    children: [
+                      for (final day in ['D', 'S', 'T', 'Q', 'Q', 'S', 'S'])
+                        Expanded(
+                          child: Center(
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 8),
+                              child: Text(
+                                day,
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: colors.onSurfaceVariant,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                  AnimatedSwitcher(
+                    duration: motion(context, 180),
+                    child: GridView.builder(
+                      key: ValueKey(dayKey(month)),
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 7,
+                        mainAxisExtent: cellSize,
                       ),
+                      itemCount: ((days + offset) / 7).ceil() * 7,
+                      itemBuilder: (context, index) {
+                        final day = index - offset + 1;
+                        if (day < 1 || day > days) {
+                          return const SizedBox.shrink();
+                        }
+                        final date = DateTime(month.year, month.month, day);
+                        final recorded = goal.registered(date);
+                        final today = dayKey(date) == dayKey(DateTime.now());
+                        return Semantics(
+                          label:
+                              '${MaterialLocalizations.of(context).formatFullDate(date)}${recorded ? ', registrado' : ''}${today ? ', hoje' : ''}',
+                          button: true,
+                          excludeSemantics: true,
+                          child: InkWell(
+                            onTap: () => onDay(date),
+                            borderRadius: BorderRadius.circular(
+                              isIOS(context) ? 24 : 6,
+                            ),
+                            child: Center(
+                              child: AnimatedContainer(
+                                duration: motion(context),
+                                width: markSize,
+                                height: markSize,
+                                alignment: Alignment.center,
+                                decoration: BoxDecoration(
+                                  color: recorded
+                                      ? colors.primaryContainer
+                                      : Colors.transparent,
+                                  borderRadius: BorderRadius.circular(
+                                    isIOS(context) ? markSize : 6,
+                                  ),
+                                  border: today
+                                      ? Border.all(color: colors.primary)
+                                      : null,
+                                ),
+                                child: Text(
+                                  '$day',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    color: recorded
+                                        ? colors.primary
+                                        : colors.onSurfaceVariant,
+                                    fontWeight: recorded
+                                        ? FontWeight.w600
+                                        : FontWeight.normal,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        );
+                      },
                     ),
                   ),
-                ),
+                ],
               ),
-          ],
-        ),
-        AnimatedSwitcher(
-          duration: motion(context, 180),
-          child: GridView.builder(
-            key: ValueKey(dayKey(month)),
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 7,
-              mainAxisExtent: 44,
             ),
-            itemCount: ((days + offset) / 7).ceil() * 7,
-            itemBuilder: (context, index) {
-              final day = index - offset + 1;
-              if (day < 1 || day > days) return const SizedBox.shrink();
-              final date = DateTime(month.year, month.month, day);
-              final recorded = goal.registered(date);
-              final today = dayKey(date) == dayKey(DateTime.now());
-              return Semantics(
-                label:
-                    '${MaterialLocalizations.of(context).formatFullDate(date)}${recorded ? ', registrado' : ''}${today ? ', hoje' : ''}',
-                button: true,
-                excludeSemantics: true,
-                child: Center(
-                  child: InkWell(
-                    onTap: () => onDay(date),
-                    borderRadius: BorderRadius.circular(
-                      isIOS(context) ? 24 : 6,
-                    ),
-                    child: AnimatedContainer(
-                      duration: motion(context),
-                      width: 38,
-                      height: 38,
-                      alignment: Alignment.center,
-                      decoration: BoxDecoration(
-                        color: recorded
-                            ? colors.primaryContainer
-                            : Colors.transparent,
-                        borderRadius: BorderRadius.circular(
-                          isIOS(context) ? 24 : 6,
-                        ),
-                        border: today
-                            ? Border.all(color: colors.primary)
-                            : null,
-                      ),
-                      child: Text(
-                        '$day',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: recorded
-                              ? colors.primary
-                              : colors.onSurfaceVariant,
-                          fontWeight: recorded
-                              ? FontWeight.w600
-                              : FontWeight.normal,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              );
-            },
           ),
         ),
       ],
