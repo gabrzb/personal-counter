@@ -60,3 +60,7 @@ ref/**/test-results/
 /DESIGN.md
 /.impeccable/
 
+
+# Kotlin build cache
+**/.kotlin/
+
