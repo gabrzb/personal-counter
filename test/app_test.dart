@@ -20,25 +20,32 @@ Future<void> flush(WidgetTester tester) async {
 }
 
 Future<void> capture(WidgetTester tester, String name) async {
+  final scaffold = find.byType(Scaffold).last;
+  ScaffoldMessenger.of(tester.element(scaffold)).hideCurrentSnackBar();
   await tester.pumpAndSettle();
   final boundary = tester.renderObject<RenderRepaintBoundary>(
     find.byKey(const ValueKey('capture')),
   );
-  final image = await boundary.toImage();
-  final bytes = await image.toByteData(format: ui.ImageByteFormat.png);
   await tester.runAsync(() async {
+    final image = await boundary.toImage();
+    final bytes = await image.toByteData(format: ui.ImageByteFormat.png);
     final file = File('build/qa/$name.png');
     await file.parent.create(recursive: true);
     await file.writeAsBytes(bytes!.buffer.asUint8List());
+    image.dispose();
   });
-  image.dispose();
 }
 
 void main() {
   sqfliteFfiInit();
   setUpAll(() async {
+    await (FontLoader(
+      'MaterialIcons',
+    )..addFont(rootBundle.load('fonts/MaterialIcons-Regular.otf'))).load();
     for (final family in ['Roboto', '.SF Pro Text']) {
-      await (FontLoader(family)..addFont(rootBundle.load('assets/fonts/Roboto-Regular.ttf'))).load();
+      await (FontLoader(
+        family,
+      )..addFont(rootBundle.load('assets/fonts/Roboto-Regular.ttf'))).load();
     }
   });
   for (final platform in [TargetPlatform.android, TargetPlatform.iOS]) {
@@ -54,7 +61,10 @@ void main() {
           path: inMemoryDatabasePath,
         );
         final store = GoalStore(repository);
-      addTearDown(() async { store.dispose(); await repository.close(); });
+        addTearDown(() async {
+          store.dispose();
+          await repository.close();
+        });
         await tester.runAsync(store.initialize);
         await tester.pumpWidget(
           ListenableBuilder(
@@ -62,6 +72,7 @@ void main() {
             builder: (_, _) => RepaintBoundary(
               key: const ValueKey('capture'),
               child: MaterialApp(
+                debugShowCheckedModeBanner: false,
                 locale: const Locale('pt', 'BR'),
                 supportedLocales: const [Locale('pt', 'BR')],
                 localizationsDelegates: GlobalMaterialLocalizations.delegates,
@@ -106,9 +117,37 @@ void main() {
         await tester.tap(find.byTooltip('Ativar tema escuro'));
         await flush(tester);
         await capture(tester, '${platform.name}-dark');
-        await tester.pageBack();
+        await tester.tap(find.byType(BackButton));
         await tester.pumpAndSettle();
+        await tester.runAsync(
+          () => store.change(() async {
+            for (final entry in [
+              ('Treino', 'fitness'),
+              ('Meditar', 'meditation'),
+              ('Água', 'water'),
+              ('Estudo', 'school'),
+              ('Sono', 'sleep'),
+              ('Poupar', 'savings'),
+              ('Correr', 'run'),
+            ]) {
+              await repository.save(
+                name: entry.$1,
+                target: 30,
+                icon: entry.$2,
+                notes: '',
+              );
+            }
+          }),
+        );
+        await tester.tap(find.byTooltip('Ativar tema claro'));
+        await flush(tester);
         await capture(tester, '${platform.name}-home');
+        tester.view.physicalSize = const Size(320, 640);
+        await tester.pumpAndSettle();
+        await capture(tester, '${platform.name}-compact');
+        expect(tester.takeException(), isNull);
+        tester.view.physicalSize = const Size(390, 844);
+        await tester.pumpAndSettle();
         await tester.tap(find.text('Leitura'));
         await tester.pumpAndSettle();
         await tester.tap(find.byTooltip('Editar meta'));
@@ -118,7 +157,7 @@ void main() {
         await tester.pumpAndSettle();
         await tester.tap(find.text('Excluir').last);
         await flush(tester);
-        expect(store.goals, isEmpty);
+        expect(store.goals.any((g) => g.name == 'Leitura'), isFalse);
         expect(tester.takeException(), isNull);
         await tester.pumpWidget(const SizedBox.shrink());
       },

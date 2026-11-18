@@ -50,7 +50,11 @@ ThemeData metasTheme(Brightness brightness, {TargetPlatform? platform}) {
       style: FilledButton.styleFrom(
         minimumSize: const Size(48, 54),
         shape: shape,
-        textStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+        textStyle: TextStyle(
+          fontFamily: ios ? '.SF Pro Text' : 'Roboto',
+          fontSize: 15,
+          fontWeight: FontWeight.w600,
+        ),
       ),
     ),
     outlinedButtonTheme: OutlinedButtonThemeData(
@@ -87,7 +91,11 @@ ThemeData metasTheme(Brightness brightness, {TargetPlatform? platform}) {
     snackBarTheme: SnackBarThemeData(
       behavior: SnackBarBehavior.floating,
       backgroundColor: ink,
-      contentTextStyle: TextStyle(color: surface),
+      contentTextStyle: TextStyle(
+        color: surface,
+        fontFamily: ios ? '.SF Pro Text' : 'Roboto',
+        fontSize: 14,
+      ),
       actionTextColor: scheme.primaryContainer,
     ),
     dividerTheme: DividerThemeData(color: scheme.outlineVariant),
