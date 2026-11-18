@@ -28,10 +28,8 @@ flutter build apk --release
 flutter build ipa --release # macOS/Xcode
 ```
 
-Configure uma assinatura própria antes de publicar: o Android usa a chave de desenvolvimento.
-
 ## Estrutura
 
-Código em `lib/src/`: `domain/` (modelo), `data/` (SQLite), `state/` (estado) e `ui/` (telas e componentes em `widgets/`).
+Código em `lib/src/`: `domain/`, `data/` (SQLite), `state/` e `ui/`.
 
-Referências e documentos locais de design não são versionados. Licença da fonte em `assets/fonts/LICENSE.txt`.
+Licença da fonte em `assets/fonts/LICENSE.txt`.
