@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
 import '../domain/goal.dart';
 import '../state/goal_store.dart';
 import 'theme.dart';
-import 'widgets.dart';
+import 'feedback.dart';
+import 'widgets/goal_form_fields.dart';
+import 'widgets/goal_editor_actions.dart';
 
 Future<void> showGoalEditor(
   BuildContext context,
@@ -195,80 +196,18 @@ class _GoalEditorState extends State<GoalEditor> {
                     ],
                   ),
                   const SizedBox(height: 24),
-                  if (!widget.notesOnly) ...[
-                    TextFormField(
-                      controller: name,
-                      autofocus: widget.goal == null,
-                      textCapitalization: TextCapitalization.sentences,
-                      maxLength: 20,
-                      textInputAction: TextInputAction.next,
-                      decoration: const InputDecoration(
-                        labelText: 'Nome',
-                        hintText: 'Ex.: Leitura',
-                      ),
-                      onChanged: (_) => setState(() {}),
-                      validator: (value) {
-                        final clean = value?.trim() ?? '';
-                        if (clean.isEmpty) return 'Dê um nome à meta';
-                        if (widget.store.goals.any(
-                          (g) =>
-                              g.id != widget.goal?.id &&
-                              g.name.toLowerCase() == clean.toLowerCase(),
-                        )) {
-                          return 'Já existe uma meta com esse nome';
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 16),
-                    TextFormField(
-                      controller: target,
-                      keyboardType: TextInputType.number,
-                      inputFormatters: [
-                        FilteringTextInputFormatter.digitsOnly,
-                        LengthLimitingTextInputFormatter(4),
-                      ],
-                      decoration: InputDecoration(
-                        labelText: 'Objetivo',
-                        suffixText: 'dias',
-                        fillColor: colors.primaryContainer,
-                      ),
-                      style: TextStyle(fontSize: 28, color: colors.onSurface),
-                      onChanged: (_) => setState(() {}),
-                      validator: (value) {
-                        final n = int.tryParse(value ?? '') ?? 0;
-                        if (n < 1 || n > 3650) {
-                          return 'Use um número inteiro de 1 a 3650';
-                        }
-                        if (n < (widget.goal?.days ?? 0)) {
-                          return 'Mínimo de ${widget.goal!.days} dias já registrados';
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 20),
-                    DropdownButtonFormField<String>(
-                      initialValue: icon,
-                      decoration: const InputDecoration(labelText: 'Ícone'),
-                      items: goalIcons.entries
-                          .map(
-                            (e) => DropdownMenuItem(
-                              value: e.key,
-                              child: Row(
-                                children: [
-                                  Icon(e.value.$1, color: colors.primary),
-                                  const SizedBox(width: 12),
-                                  Text(e.value.$2),
-                                ],
-                              ),
-                            ),
-                          )
-                          .toList(),
-                      onChanged: saving
-                          ? null
-                          : (value) => setState(() => icon = value!),
-                    ),
-                  ] else
+                  if (!widget.notesOnly)
+                    GoalFormFields(
+                      nameController: name,
+                      targetController: target,
+                      icon: icon,
+                      goal: widget.goal,
+                      existingGoals: widget.store.goals,
+                      saving: saving,
+                      onChanged: () => setState(() {}),
+                      onIconChanged: (value) => setState(() => icon = value),
+                    )
+                  else
                     TextFormField(
                       controller: notes,
                       maxLines: 5,
@@ -292,58 +231,20 @@ class _GoalEditorState extends State<GoalEditor> {
                         ),
                       ),
                     ),
-                  if (widget.goal != null && !widget.notesOnly)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 16),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: TextButton.icon(
-                              onPressed: saving || widget.goal!.days == 0
-                                  ? null
-                                  : () => destructive(false),
-                              icon: const Icon(Icons.restart_alt),
-                              label: const Text('Reiniciar'),
-                            ),
-                          ),
-                          Expanded(
-                            child: TextButton.icon(
-                              onPressed: saving
-                                  ? null
-                                  : () => destructive(true),
-                              icon: const Icon(Icons.delete_outline),
-                              label: const Text('Excluir'),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  const SizedBox(height: 24),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: OutlinedButton(
-                          onPressed: saving ? null : close,
-                          child: const Text('Cancelar'),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: FilledButton(
-                          onPressed: saving ? null : save,
-                          child: saving
-                              ? const SizedBox.square(
-                                  dimension: 20,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                  ),
-                                )
-                              : Text(
-                                  widget.goal == null ? 'Criar meta' : 'Salvar',
-                                ),
-                        ),
-                      ),
-                    ],
+                  GoalEditorActions(
+                    saving: saving,
+                    creating: widget.goal == null,
+                    onCancel: close,
+                    onSave: save,
+                    onReset:
+                        widget.goal != null &&
+                            widget.goal!.days > 0 &&
+                            !widget.notesOnly
+                        ? () => destructive(false)
+                        : null,
+                    onDelete: widget.goal != null && !widget.notesOnly
+                        ? () => destructive(true)
+                        : null,
                   ),
                 ],
               ),

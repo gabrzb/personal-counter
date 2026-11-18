@@ -26,6 +26,8 @@ Os dias são acumulados, não uma sequência obrigatória. Uma ausência não ze
 
 `lib/src/domain` contém o modelo e as datas; `data`, o repositório SQLite; `state`, o estado observável; `ui`, telas, componentes e tema. O banco é a fonte de verdade: mudanças são confirmadas antes de atualizar a interface. Operações envolvendo múltiplas tabelas usam transações; registros diários têm chave única e exclusão em cascata.
 
+`lib/src/ui/widgets/` reúne os componentes de apresentação: card, grade, cabeçalho, calendário, contador, observações e formulário. São `StatelessWidget`, com construtores `const`; recebem dados e callbacks. As telas preservam apenas o estado necessário para ordenação, mês/data e edição, e a aplicação gerencia o ciclo de vida do repositório. Feedback e catálogo de ícones ficam separados em `feedback.dart` e `goal_icons.dart`.
+
 O banco `metas.db` é criado no diretório privado do app. A versão inicial do esquema é 1; futuras mudanças devem usar migrações, preservando os dados existentes.
 
 ## Verificação

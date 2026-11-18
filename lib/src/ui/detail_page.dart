@@ -7,7 +7,11 @@ import '../domain/goal.dart';
 import '../state/goal_store.dart';
 import 'goal_editor.dart';
 import 'theme.dart';
-import 'widgets.dart';
+import 'feedback.dart';
+import 'widgets/goal_calendar.dart';
+import 'widgets/goal_counter.dart';
+import 'widgets/goal_notes.dart';
+import 'widgets/goal_registration_bar.dart';
 
 class DetailPage extends StatefulWidget {
   const DetailPage({super.key, required this.store, required this.id});
@@ -89,7 +93,6 @@ class _DetailPageState extends State<DetailPage> with WidgetsBindingObserver {
           body: const Center(child: Text('A meta foi removida.')),
         );
       }
-      final colors = Theme.of(context).colorScheme;
       final ios = isIOS(context);
       final now = DateTime.now();
       final registered = goal.registered(now);
@@ -134,82 +137,7 @@ class _DetailPageState extends State<DetailPage> with WidgetsBindingObserver {
                             ),
                           ),
                         ),
-                      if (ios)
-                        _IOSCounter(goal: goal)
-                      else
-                        Center(
-                          child: Column(
-                            children: [
-                              if (ios) GoalSymbol(goal.icon, size: 48),
-                              Semantics(
-                                liveRegion: true,
-                                label: '${goal.days} de ${goal.target} dias',
-                                child: AnimatedSwitcher(
-                                  duration: motion(context),
-                                  transitionBuilder: (child, animation) =>
-                                      FadeTransition(
-                                        opacity: animation,
-                                        child: ScaleTransition(
-                                          scale: Tween(begin: .92, end: 1.0)
-                                              .animate(
-                                                CurvedAnimation(
-                                                  parent: animation,
-                                                  curve: Curves.easeOutCubic,
-                                                ),
-                                              ),
-                                          child: child,
-                                        ),
-                                      ),
-                                  child: Text(
-                                    '${goal.days}',
-                                    key: ValueKey(goal.days),
-                                    style: TextStyle(
-                                      fontSize: 80,
-                                      height: 1.2,
-                                      fontWeight: FontWeight.w500,
-                                      color: colors.primary,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              Text(
-                                'de ${goal.target} dias',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  color: colors.onSurfaceVariant,
-                                ),
-                              ),
-                              const SizedBox(height: 16),
-                              SizedBox(
-                                width: 160,
-                                child: TweenAnimationBuilder<double>(
-                                  duration: motion(context, 420),
-                                  tween: Tween(end: goal.progress),
-                                  curve: Curves.easeOutCubic,
-                                  builder: (_, value, _) =>
-                                      LinearProgressIndicator(
-                                        value: value,
-                                        minHeight: 3,
-                                        backgroundColor:
-                                            colors.primaryContainer,
-                                        borderRadius: BorderRadius.circular(4),
-                                      ),
-                                ),
-                              ),
-                              if (goal.complete)
-                                Padding(
-                                  padding: const EdgeInsets.only(top: 16),
-                                  child: Text(
-                                    'Meta concluída',
-                                    style: TextStyle(
-                                      color: colors.primary,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                ),
-                            ],
-                          ),
-                        ),
+                      GoalCounter(goal: goal),
                       const SizedBox(height: 28),
                       GoalCalendar(
                         goal: goal,
@@ -240,83 +168,26 @@ class _DetailPageState extends State<DetailPage> with WidgetsBindingObserver {
                         },
                       ),
                       const SizedBox(height: 24),
-                      Row(
-                        children: [
-                          const Expanded(
-                            child: Text(
-                              'Observações',
-                              style: TextStyle(
-                                fontSize: 15,
-                                fontWeight: FontWeight.w600,
+                      GoalNotes(
+                        notes: goal.notes,
+                        onEdit: store.busy
+                            ? null
+                            : () => showGoalEditor(
+                                context,
+                                store,
+                                goal: goal,
+                                notesOnly: true,
                               ),
-                            ),
-                          ),
-                          IconButton(
-                            tooltip: 'Editar observações',
-                            onPressed: store.busy
-                                ? null
-                                : () => showGoalEditor(
-                                    context,
-                                    store,
-                                    goal: goal,
-                                    notesOnly: true,
-                                  ),
-                            icon: const Icon(Icons.edit_note_rounded),
-                          ),
-                        ],
-                      ),
-                      InkWell(
-                        onTap: () => showGoalEditor(
-                          context,
-                          store,
-                          goal: goal,
-                          notesOnly: true,
-                        ),
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 8),
-                          child: Text(
-                            goal.notes.isEmpty
-                                ? 'Adicionar observação'
-                                : goal.notes,
-                            style: TextStyle(
-                              fontSize: 14,
-                              height: 1.5,
-                              color: colors.onSurfaceVariant,
-                            ),
-                          ),
-                        ),
                       ),
                     ],
                   ),
                 ),
               ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(24, 12, 24, 20),
-                child: Row(
-                  children: [
-                    ThemeButton(store: store),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: FilledButton.icon(
-                        onPressed: store.busy || registered || goal.complete
-                            ? null
-                            : () => register(goal),
-                        icon: Icon(
-                          registered || goal.complete
-                              ? Icons.check_rounded
-                              : Icons.add,
-                        ),
-                        label: Text(
-                          registered
-                              ? 'Dia registrado'
-                              : goal.complete
-                              ? 'Meta concluída'
-                              : 'Registrar dia',
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
+              GoalRegistrationBar(
+                store: store,
+                registered: registered,
+                complete: goal.complete,
+                onRegister: () => register(goal),
               ),
             ],
           ),
@@ -324,245 +195,4 @@ class _DetailPageState extends State<DetailPage> with WidgetsBindingObserver {
       );
     },
   );
-}
-
-class _IOSCounter extends StatelessWidget {
-  const _IOSCounter({required this.goal});
-  final Goal goal;
-  @override
-  Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: isDark(context) ? const Color(0xFF1C1C1E) : Colors.white,
-        borderRadius: BorderRadius.circular(17),
-      ),
-      child: Row(
-        children: [
-          SizedBox.square(
-            dimension: 62,
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                SizedBox.expand(
-                  child: TweenAnimationBuilder<double>(
-                    tween: Tween(end: goal.progress),
-                    duration: motion(context, 420),
-                    builder: (_, value, _) => CircularProgressIndicator(
-                      value: value,
-                      strokeWidth: 5,
-                      backgroundColor: colors.primaryContainer,
-                    ),
-                  ),
-                ),
-                Icon(
-                  goalIcons[goal.icon]?.$1 ?? Icons.flag_outlined,
-                  color: colors.primary,
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  goal.complete ? 'Meta concluída' : 'Objetivo em dias',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: colors.onSurfaceVariant,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Semantics(
-                  liveRegion: true,
-                  child: Text.rich(
-                    TextSpan(
-                      children: [
-                        TextSpan(
-                          text: '${goal.days}',
-                          style: const TextStyle(
-                            fontSize: 30,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        TextSpan(
-                          text: ' de ${goal.target} dias',
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: colors.onSurfaceVariant,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Text(
-            '${(goal.progress * 100).round()}%',
-            style: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-              color: colors.primary,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class GoalCalendar extends StatelessWidget {
-  const GoalCalendar({
-    super.key,
-    required this.goal,
-    required this.month,
-    required this.onMonth,
-    required this.onDay,
-  });
-  final Goal goal;
-  final DateTime month;
-  final ValueChanged<int> onMonth;
-  final ValueChanged<DateTime> onDay;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
-    final label = MaterialLocalizations.of(context).formatMonthYear(month);
-    final days = DateTime(month.year, month.month + 1, 0).day;
-    final offset = month.weekday % 7;
-    final minimumTarget = isIOS(context) ? 44.0 : 48.0;
-    final markSize = (MediaQuery.textScalerOf(context).scale(14) * 1.6).clamp(
-      38.0,
-      double.infinity,
-    );
-    final cellSize = (markSize + 10).clamp(minimumTarget, double.infinity);
-    return Column(
-      children: [
-        Row(
-          children: [
-            Expanded(
-              child: Text(
-                label,
-                style: const TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ),
-            IconButton(
-              tooltip: 'Mês anterior',
-              onPressed: () => onMonth(-1),
-              icon: const Icon(Icons.chevron_left),
-            ),
-            IconButton(
-              tooltip: 'Próximo mês',
-              onPressed: () => onMonth(1),
-              icon: const Icon(Icons.chevron_right),
-            ),
-          ],
-        ),
-        LayoutBuilder(
-          builder: (context, constraints) => SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: SizedBox(
-              width: constraints.maxWidth.clamp(cellSize * 7, double.infinity),
-              child: Column(
-                children: [
-                  Row(
-                    children: [
-                      for (final day in ['D', 'S', 'T', 'Q', 'Q', 'S', 'S'])
-                        Expanded(
-                          child: Center(
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(vertical: 8),
-                              child: Text(
-                                day,
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: colors.onSurfaceVariant,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                    ],
-                  ),
-                  AnimatedSwitcher(
-                    duration: motion(context, 180),
-                    child: GridView.builder(
-                      key: ValueKey(dayKey(month)),
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 7,
-                        mainAxisExtent: cellSize,
-                      ),
-                      itemCount: ((days + offset) / 7).ceil() * 7,
-                      itemBuilder: (context, index) {
-                        final day = index - offset + 1;
-                        if (day < 1 || day > days) {
-                          return const SizedBox.shrink();
-                        }
-                        final date = DateTime(month.year, month.month, day);
-                        final recorded = goal.registered(date);
-                        final today = dayKey(date) == dayKey(DateTime.now());
-                        return Semantics(
-                          label:
-                              '${MaterialLocalizations.of(context).formatFullDate(date)}${recorded ? ', registrado' : ''}${today ? ', hoje' : ''}',
-                          button: true,
-                          excludeSemantics: true,
-                          child: InkWell(
-                            onTap: () => onDay(date),
-                            borderRadius: BorderRadius.circular(
-                              isIOS(context) ? 24 : 6,
-                            ),
-                            child: Center(
-                              child: AnimatedContainer(
-                                duration: motion(context),
-                                width: markSize,
-                                height: markSize,
-                                alignment: Alignment.center,
-                                decoration: BoxDecoration(
-                                  color: recorded
-                                      ? colors.primaryContainer
-                                      : Colors.transparent,
-                                  borderRadius: BorderRadius.circular(
-                                    isIOS(context) ? markSize : 6,
-                                  ),
-                                  border: today
-                                      ? Border.all(color: colors.primary)
-                                      : null,
-                                ),
-                                child: Text(
-                                  '$day',
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    color: recorded
-                                        ? colors.primary
-                                        : colors.onSurfaceVariant,
-                                    fontWeight: recorded
-                                        ? FontWeight.w600
-                                        : FontWeight.normal,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
 }
